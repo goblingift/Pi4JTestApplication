@@ -7,9 +7,12 @@ package gift.goblin.pi4jtestapplication;
 
 import com.pi4j.io.gpio.GpioController;
 import com.pi4j.io.gpio.GpioFactory;
+import com.pi4j.io.gpio.GpioPinDigitalInput;
 import com.pi4j.io.gpio.GpioPinDigitalOutput;
+import com.pi4j.io.gpio.PinPullResistance;
 import com.pi4j.io.gpio.PinState;
 import com.pi4j.io.gpio.RaspiPin;
+import com.pi4j.io.gpio.trigger.GpioSetStateTrigger;
 
 /**
  *
@@ -25,27 +28,23 @@ public class MainClass {
         // create gpio controller
         final GpioController gpio = GpioFactory.getInstance();
 
-        // provision gpio pin #24 (Pin 19 BCM) as an output pin and turn on
-        final GpioPinDigitalOutput pin = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_24, "Blue-LED", PinState.HIGH);
+        // provision gpio pin #3 (Pin 22 BCM) as an output pin
+        final GpioPinDigitalOutput pinLed = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_03, "Blue-LED", PinState.LOW);
 
-        // set shutdown state for this pin
-        pin.setShutdownOptions(true, PinState.LOW);
-
-        System.out.println("lights for 5s on!");
-        pin.high();
-
-        Thread.sleep(5000);
-
-        System.out.println("lights off!");
-        pin.low();
+        // set input pin #00 (Pin 17 BCM)
+        GpioPinDigitalInput inputPin = gpio.provisionDigitalInputPin(RaspiPin.GPIO_00, PinPullResistance.PULL_DOWN);
+        inputPin.setShutdownOptions(true);
         
-        // flash the led 10 times for 1/4 second
-        System.out.println("disco disco!");
-        for (int i = 0; i < 10; i++) {
-            pin.pulse(250, true); // set second argument to 'true' use a blocking call
-            Thread.sleep(100);
-        }
-
+        // create a gpio control trigger on the input pin ; when the input goes HIGH, also set gpio pin #03 to High and vice versa
+        inputPin.addTrigger(new GpioSetStateTrigger(PinState.HIGH, pinLed, PinState.HIGH));
+        inputPin.addTrigger(new GpioSetStateTrigger(PinState.LOW, pinLed, PinState.LOW));
+        
+        
+        
+        
+        System.out.println("Run program for 1 more minute, then terminate!");
+        Thread.sleep(60_000);
+        
         // stop all GPIO activity/threads by shutting down the GPIO controller
         // (this method will forcefully shutdown all GPIO monitoring threads and scheduled tasks)
         gpio.shutdown();
